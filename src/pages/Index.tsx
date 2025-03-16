@@ -5,18 +5,21 @@ import { getCurrentPrayer, PrayerOrder } from "@/utils/prayerUtils";
 import { useToast } from "@/hooks/use-toast";
 
 import CitySelector from "@/components/CitySelector";
+import DistrictSelector from "@/components/DistrictSelector";
 import PrayerTimeCard from "@/components/PrayerTimeCard";
 import DateDisplay from "@/components/DateDisplay";
 import CurrentTime from "@/components/CurrentTime";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Bell, RefreshCw } from "lucide-react";
 
 const Index = () => {
   const { toast } = useToast();
   const [selectedCityId, setSelectedCityId] = useState<string>("");
   const [selectedCityName, setSelectedCityName] = useState<string>("");
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string>("");
+  const [selectedDistrictName, setSelectedDistrictName] = useState<string>("");
 
   // Initialize with Istanbul if no city selected
   useEffect(() => {
@@ -40,14 +43,31 @@ const Index = () => {
     }
   }, []);
 
-  const { data: prayerTimes, isLoading, isError, refetch } = usePrayerTimes(selectedCityId);
+  const { data: prayerTimes, isLoading, isError, refetch } = usePrayerTimes(
+    selectedDistrictId || selectedCityId
+  );
   
   const handleCitySelect = (cityId: string, cityName: string) => {
     setSelectedCityId(cityId);
     setSelectedCityName(cityName);
+    // Reset district when city changes
+    setSelectedDistrictId("");
+    setSelectedDistrictName("");
+    
     toast({
       title: "Şehir değiştirildi",
       description: `${cityName} için namaz vakitleri yükleniyor.`,
+      duration: 3000,
+    });
+  };
+  
+  const handleDistrictSelect = (districtId: string, districtName: string) => {
+    setSelectedDistrictId(districtId);
+    setSelectedDistrictName(districtName);
+    
+    toast({
+      title: "İlçe değiştirildi",
+      description: `${selectedCityName}, ${districtName} için namaz vakitleri yükleniyor.`,
       duration: 3000,
     });
   };
@@ -64,6 +84,11 @@ const Index = () => {
   // Calculate current and next prayer times
   const { current, next } = prayerTimes ? getCurrentPrayer(prayerTimes) : { current: null, next: "imsak" };
 
+  // Location display name
+  const locationName = selectedDistrictName 
+    ? `${selectedCityName}, ${selectedDistrictName}`
+    : selectedCityName;
+
   return (
     <div className="min-h-screen py-8 px-4 bg-gradient-to-br from-prayer-cream to-prayer-sand/50">
       <div className="max-w-4xl mx-auto">
@@ -72,13 +97,21 @@ const Index = () => {
           <p className="text-prayer-teal/70">Günlük namaz vakitlerini takip edin</p>
         </div>
 
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <CitySelector onCitySelect={handleCitySelect} selectedCity={selectedCityName} />
+        <div className="mb-6 flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <CitySelector onCitySelect={handleCitySelect} selectedCity={selectedCityName} />
+            <DistrictSelector 
+              onDistrictSelect={handleDistrictSelect} 
+              selectedDistrict={selectedDistrictName}
+              cityId={selectedCityId}
+              disabled={!selectedCityId}
+            />
+          </div>
           
           <Button 
             onClick={handleRefresh}
             variant="outline" 
-            className="bg-white/80 border-prayer-sand hover:bg-white/95"
+            className="w-full sm:w-auto sm:self-end bg-white/80 border-prayer-sand hover:bg-white/95"
           >
             <RefreshCw size={16} className="mr-2" />
             Vakitleri Yenile
@@ -89,7 +122,7 @@ const Index = () => {
           <DateDisplay 
             hijriDate={prayerTimes?.date.hijri} 
             gregorianDate={prayerTimes?.date.gregorian}
-            cityName={selectedCityName}
+            cityName={locationName}
           />
           <CurrentTime />
         </div>
