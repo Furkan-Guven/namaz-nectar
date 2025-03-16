@@ -12,7 +12,7 @@ import CurrentTime from "@/components/CurrentTime";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bell, RefreshCw } from "lucide-react";
+import { Bell, RefreshCw, AlertTriangle } from "lucide-react";
 
 const Index = () => {
   const { toast } = useToast();
@@ -26,7 +26,12 @@ const Index = () => {
     if (!selectedCityId) {
       const fetchIstanbul = async () => {
         try {
-          const response = await fetch("https://prayertimes.api.abdus.dev/api/diyanet/search?q=Istanbul");
+          const response = await fetch("https://prayertimes.api.abdus.dev/api/diyanet/search?q=Istanbul", {
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
           if (response.ok) {
             const data = await response.json();
             if (data && data.length > 0) {
@@ -36,6 +41,8 @@ const Index = () => {
           }
         } catch (error) {
           console.error("Error fetching Istanbul data:", error);
+          setSelectedCityId("İstanbul");
+          setSelectedCityName("İstanbul");
         }
       };
       
@@ -43,7 +50,7 @@ const Index = () => {
     }
   }, []);
 
-  const { data: prayerTimes, isLoading, isError, refetch } = usePrayerTimes(
+  const { data: prayerTimes, isLoading, isError, error, refetch } = usePrayerTimes(
     selectedDistrictId || selectedCityId
   );
   
@@ -89,6 +96,9 @@ const Index = () => {
     ? `${selectedCityName}, ${selectedDistrictName}`
     : selectedCityName;
 
+  // For displaying error messages
+  const errorMessage = error instanceof Error ? error.message : "Namaz vakitleri yüklenemedi";
+
   return (
     <div className="min-h-screen py-8 px-4 bg-gradient-to-br from-prayer-cream to-prayer-sand/50">
       <div className="max-w-4xl mx-auto">
@@ -120,8 +130,8 @@ const Index = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <DateDisplay 
-            hijriDate={prayerTimes?.date.hijri} 
-            gregorianDate={prayerTimes?.date.gregorian}
+            hijriDate={prayerTimes?.date?.hijri} 
+            gregorianDate={prayerTimes?.date?.gregorian}
             cityName={locationName}
           />
           <CurrentTime />
@@ -133,11 +143,15 @@ const Index = () => {
           </Card>
         ) : isError ? (
           <Card className="p-8 text-center bg-white/90 border-prayer-sand">
-            <p className="text-red-500">Namaz vakitleri yüklenirken bir hata oluştu.</p>
-            <Button onClick={handleRefresh} variant="outline" className="mt-4">
-              <RefreshCw size={16} className="mr-2" />
-              Tekrar Dene
-            </Button>
+            <div className="flex flex-col items-center gap-4">
+              <AlertTriangle size={32} className="text-amber-500" />
+              <p className="text-red-500 font-medium">{errorMessage}</p>
+              <p className="text-gray-600 mt-2">Lütfen başka bir şehir/ilçe seçin veya daha sonra tekrar deneyin.</p>
+              <Button onClick={handleRefresh} variant="outline" className="mt-2">
+                <RefreshCw size={16} className="mr-2" />
+                Tekrar Dene
+              </Button>
+            </div>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -153,7 +167,7 @@ const Index = () => {
           </div>
         )}
 
-        {next && (
+        {next && !isError && !isLoading && (
           <div className="mt-8 text-center">
             <Button 
               variant="outline" 

@@ -7,6 +7,8 @@ import { Check, ChevronsUpDown, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface DistrictSelectorProps {
   onDistrictSelect: (districtId: string, districtName: string) => void;
@@ -25,17 +27,10 @@ const DistrictSelector = ({ onDistrictSelect, selectedDistrict, cityId, disabled
   const handleSelect = (districtId: string, districtName: string) => {
     onDistrictSelect(districtId, districtName);
     setOpen(false);
-  };
-  
-  // When there's an API error but user still wants to select a district
-  const handleDirectSelection = (districtName: string) => {
-    // Use district name as both ID and name (fallback)
-    onDistrictSelect(districtName, districtName);
-    setOpen(false);
     
     toast({
       title: "İlçe Seçildi",
-      description: `${districtName} ilçesi seçildi. API sorunları nedeniyle tahmini namaz vakitleri gösterilecek.`,
+      description: `${districtName} ilçesi seçildi.`,
       variant: "default"
     });
   };
@@ -76,44 +71,34 @@ const DistrictSelector = ({ onDistrictSelect, selectedDistrict, cityId, disabled
                   İlçeler yükleniyor...
                 </div>
               ) : error ? (
-                <div className="py-6 text-center text-sm">
-                  <p className="text-amber-500">İlçe verisi alınamadı. Aşağıdaki örnek ilçelerden seçebilir veya manuel girebilirsiniz.</p>
+                <div className="p-2">
+                  <Alert variant="default" className="bg-amber-50 text-amber-800 border-amber-200">
+                    <InfoIcon className="h-4 w-4" />
+                    <AlertTitle className="text-xs">
+                      API bağlantı sorunu nedeniyle yerel veri kullanılıyor.
+                    </AlertTitle>
+                  </Alert>
                 </div>
-              ) : (
-                <>
-                  <CommandEmpty>
-                    <div className="py-3 text-sm">
-                      <p>İlçe bulunamadı</p>
-                      {searchTerm.length > 0 && (
-                        <Button 
-                          variant="link" 
-                          className="text-prayer-teal"
-                          onClick={() => handleDirectSelection(searchTerm)}
-                        >
-                          "{searchTerm}" olarak kaydet
-                        </Button>
+              ) : null}
+              
+              <CommandEmpty>İlçe bulunamadı</CommandEmpty>
+              <CommandGroup heading="İlçeler">
+                {filteredDistricts && filteredDistricts.map((district) => (
+                  <CommandItem
+                    key={district.id}
+                    value={district.text}
+                    onSelect={() => handleSelect(district.id, district.text)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedDistrict === district.text ? "opacity-100" : "opacity-0"
                       )}
-                    </div>
-                  </CommandEmpty>
-                  <CommandGroup heading="İlçeler">
-                    {filteredDistricts && filteredDistricts.map((district) => (
-                      <CommandItem
-                        key={district.id}
-                        value={district.text}
-                        onSelect={() => handleSelect(district.id, district.text)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedDistrict === district.text ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {district.text}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+                    />
+                    {district.text}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
             </CommandList>
           </Command>
         </PopoverContent>

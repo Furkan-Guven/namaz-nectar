@@ -43,7 +43,7 @@ const CitySelector = ({ onCitySelect, selectedCity }: CitySelectorProps) => {
     
     toast({
       title: "Şehir Seçildi",
-      description: `${cityName} şehri seçildi. API sorunları nedeniyle tahmini namaz vakitleri gösterilecek.`,
+      description: `${cityName} şehri seçildi.`,
       variant: "default"
     });
   };
