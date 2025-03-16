@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react";
 import { useSearchCity, turkishCities } from "../services/prayerApi";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useToast } from "@/hooks/use-toast";
 
 interface CitySelectorProps {
   onCitySelect: (cityId: string, cityName: string) => void;
@@ -14,10 +14,38 @@ interface CitySelectorProps {
 }
 
 const CitySelector = ({ onCitySelect, selectedCity }: CitySelectorProps) => {
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(selectedCity || "");
   
   const { data: cities, isLoading, error } = useSearchCity(searchTerm);
+  
+  // If API fails, use only the Turkish cities without IDs
+  const handleLocalCitySelect = (cityName: string) => {
+    if (cities && cities.length > 0) {
+      // Try to find the city in the API results
+      const cityFromApi = cities.find(city => 
+        city.text.toLowerCase() === cityName.toLowerCase()
+      );
+      
+      if (cityFromApi) {
+        onCitySelect(cityFromApi.id, cityFromApi.text);
+        setOpen(false);
+        return;
+      }
+    }
+    
+    // Fallback: use the city name as both ID and name
+    // This won't work perfectly but gives user feedback
+    onCitySelect(cityName, cityName);
+    setOpen(false);
+    
+    toast({
+      title: "API Bağlantı Sorunu",
+      description: "Şehir seçildi, ancak ID bilgisi alınamadı. Namaz vakitleri gösterilmeyebilir.",
+      variant: "destructive"
+    });
+  };
   
   // Filter cities to Türkiye's 81 cities first
   const filteredCities = cities?.filter(city => 
@@ -58,6 +86,12 @@ const CitySelector = ({ onCitySelect, selectedCity }: CitySelectorProps) => {
               onValueChange={setSearchTerm}
             />
             <CommandList>
+              {error ? (
+                <div className="py-6 text-center text-sm text-red-500">
+                  API'ye bağlanılamadı. Lütfen şehrinizi seçmeye devam edin.
+                </div>
+              ) : null}
+              
               <CommandEmpty>Şehir bulunamadı</CommandEmpty>
               <CommandGroup heading="Türkiye'nin 81 İli">
                 {filteredCities && filteredCities.length > 0 ? (
@@ -83,11 +117,14 @@ const CitySelector = ({ onCitySelect, selectedCity }: CitySelectorProps) => {
                       <CommandItem
                         key={index}
                         value={city}
-                        onSelect={() => {
-                          setSearchTerm(city);
-                          // User needs to search for the city to get its ID
-                        }}
+                        onSelect={() => handleLocalCitySelect(city)}
                       >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedCity === city ? "opacity-100" : "opacity-0"
+                          )}
+                        />
                         {city}
                       </CommandItem>
                     ))

@@ -34,9 +34,16 @@ export interface PrayerTimes {
 // API functions
 const searchCity = async (city: string): Promise<CitySearchResult[]> => {
   try {
-    const response = await fetch(`https://prayertimes.api.abdus.dev/api/diyanet/search?q=${encodeURIComponent(city)}`);
+    console.log(`Fetching city data for: ${city}`);
+    const response = await fetch(`https://prayertimes.api.abdus.dev/api/diyanet/search?q=${encodeURIComponent(city)}`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
     
     if (!response.ok) {
+      console.error(`Error fetching city data: ${response.status}`);
       throw new Error(`Error fetching city data: ${response.status}`);
     }
     
@@ -49,9 +56,16 @@ const searchCity = async (city: string): Promise<CitySearchResult[]> => {
 
 const searchDistrict = async (cityId: string): Promise<DistrictSearchResult[]> => {
   try {
-    const response = await fetch(`https://prayertimes.api.abdus.dev/api/diyanet/regions/${cityId}`);
+    console.log(`Fetching districts for city ID: ${cityId}`);
+    const response = await fetch(`https://prayertimes.api.abdus.dev/api/diyanet/regions/${cityId}`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
     
     if (!response.ok) {
+      console.error(`Error fetching district data: ${response.status}`);
       throw new Error(`Error fetching district data: ${response.status}`);
     }
     
@@ -64,7 +78,14 @@ const searchDistrict = async (cityId: string): Promise<DistrictSearchResult[]> =
 
 const getPrayerTimes = async (locationId: string): Promise<PrayerTimes> => {
   try {
-    const response = await fetch(`https://prayertimes.api.abdus.dev/api/diyanet/times/${locationId}`);
+    console.log(`Fetching prayer times for location ID: ${locationId}`);
+    // Try direct HTTP request first
+    const response = await fetch(`https://prayertimes.api.abdus.dev/api/diyanet/times/${locationId}`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
     
     if (!response.ok) {
       throw new Error(`Error fetching prayer times: ${response.status}`);
@@ -73,6 +94,27 @@ const getPrayerTimes = async (locationId: string): Promise<PrayerTimes> => {
     return response.json();
   } catch (error) {
     console.error("Error fetching prayer times:", error);
+    // If the location ID isn't valid (e.g., when we used a name as fallback),
+    // provide dummy prayer times to avoid breaking the UI
+    if (!locationId.match(/^\d+$/)) {
+      console.log("Using fallback prayer times data");
+      return {
+        id: locationId,
+        name: locationId,
+        date: {
+          hijri: new Date().toLocaleDateString('tr-TR'),
+          gregorian: new Date().toLocaleDateString('tr-TR')
+        },
+        times: {
+          imsak: "--:--",
+          gunes: "--:--",
+          ogle: "--:--",
+          ikindi: "--:--",
+          aksam: "--:--",
+          yatsi: "--:--"
+        }
+      };
+    }
     throw error;
   }
 };
@@ -84,6 +126,7 @@ export const useSearchCity = (city: string) => {
     queryFn: () => searchCity(city),
     enabled: !!city && city.length > 1, // Only run if city has at least 2 characters
     staleTime: 1000 * 60 * 60, // 1 hour
+    retry: 2, // Retry twice before giving up
   });
 };
 
@@ -93,6 +136,7 @@ export const useSearchDistricts = (cityId: string | undefined) => {
     queryFn: () => searchDistrict(cityId as string),
     enabled: !!cityId,
     staleTime: 1000 * 60 * 60, // 1 hour
+    retry: 2, // Retry twice before giving up
   });
 };
 
@@ -103,6 +147,7 @@ export const usePrayerTimes = (locationId: string | undefined) => {
     enabled: !!locationId,
     staleTime: 1000 * 60 * 30, // 30 minutes
     refetchOnWindowFocus: false,
+    retry: 2, // Retry twice before giving up
   });
 };
 

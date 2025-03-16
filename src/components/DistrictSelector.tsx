@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Check, ChevronsUpDown, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useToast } from "@/hooks/use-toast";
 
 interface DistrictSelectorProps {
   onDistrictSelect: (districtId: string, districtName: string) => void;
@@ -15,6 +16,7 @@ interface DistrictSelectorProps {
 }
 
 const DistrictSelector = ({ onDistrictSelect, selectedDistrict, cityId, disabled }: DistrictSelectorProps) => {
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -23,6 +25,19 @@ const DistrictSelector = ({ onDistrictSelect, selectedDistrict, cityId, disabled
   const handleSelect = (districtId: string, districtName: string) => {
     onDistrictSelect(districtId, districtName);
     setOpen(false);
+  };
+  
+  // When there's an API error but user still wants to select a district
+  const handleDirectSelection = (districtName: string) => {
+    // Use district name as both ID and name (fallback)
+    onDistrictSelect(districtName, districtName);
+    setOpen(false);
+    
+    toast({
+      title: "API Bağlantı Sorunu",
+      description: "İlçe seçildi, ancak ID bilgisi alınamadı. Namaz vakitleri gösterilmeyebilir.",
+      variant: "destructive"
+    });
   };
   
   const filteredDistricts = districts?.filter(district => 
@@ -62,11 +77,24 @@ const DistrictSelector = ({ onDistrictSelect, selectedDistrict, cityId, disabled
                 </div>
               ) : error ? (
                 <div className="py-6 text-center text-sm text-red-500">
-                  İlçeler yüklenirken hata oluştu
+                  İlçeler yüklenirken hata oluştu. Lütfen doğrudan ilçe adını girin.
                 </div>
               ) : (
                 <>
-                  <CommandEmpty>İlçe bulunamadı</CommandEmpty>
+                  <CommandEmpty>
+                    <div className="py-3 text-sm">
+                      <p>İlçe bulunamadı</p>
+                      {searchTerm.length > 0 && (
+                        <Button 
+                          variant="link" 
+                          className="text-prayer-teal"
+                          onClick={() => handleDirectSelection(searchTerm)}
+                        >
+                          "{searchTerm}" olarak kaydet
+                        </Button>
+                      )}
+                    </div>
+                  </CommandEmpty>
                   <CommandGroup heading="İlçeler">
                     {filteredDistricts && filteredDistricts.map((district) => (
                       <CommandItem
