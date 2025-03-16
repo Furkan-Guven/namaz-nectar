@@ -34,9 +34,9 @@ const DistrictSelector = ({ onDistrictSelect, selectedDistrict, cityId, disabled
     setOpen(false);
     
     toast({
-      title: "API Bağlantı Sorunu",
-      description: "İlçe seçildi, ancak ID bilgisi alınamadı. Namaz vakitleri gösterilmeyebilir.",
-      variant: "destructive"
+      title: "İlçe Seçildi",
+      description: `${districtName} ilçesi seçildi. API sorunları nedeniyle tahmini namaz vakitleri gösterilecek.`,
+      variant: "default"
     });
   };
   
@@ -76,8 +76,8 @@ const DistrictSelector = ({ onDistrictSelect, selectedDistrict, cityId, disabled
                   İlçeler yükleniyor...
                 </div>
               ) : error ? (
-                <div className="py-6 text-center text-sm text-red-500">
-                  İlçeler yüklenirken hata oluştu. Lütfen doğrudan ilçe adını girin.
+                <div className="py-6 text-center text-sm">
+                  <p className="text-amber-500">İlçe verisi alınamadı. Aşağıdaki örnek ilçelerden seçebilir veya manuel girebilirsiniz.</p>
                 </div>
               ) : (
                 <>

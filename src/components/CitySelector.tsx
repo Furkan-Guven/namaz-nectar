@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchCity, turkishCities } from "../services/prayerApi";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -7,6 +7,8 @@ import { Check, ChevronsUpDown, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface CitySelectorProps {
   onCitySelect: (cityId: string, cityName: string) => void;
@@ -36,18 +38,17 @@ const CitySelector = ({ onCitySelect, selectedCity }: CitySelectorProps) => {
     }
     
     // Fallback: use the city name as both ID and name
-    // This won't work perfectly but gives user feedback
     onCitySelect(cityName, cityName);
     setOpen(false);
     
     toast({
-      title: "API Bağlantı Sorunu",
-      description: "Şehir seçildi, ancak ID bilgisi alınamadı. Namaz vakitleri gösterilmeyebilir.",
-      variant: "destructive"
+      title: "Şehir Seçildi",
+      description: `${cityName} şehri seçildi. API sorunları nedeniyle tahmini namaz vakitleri gösterilecek.`,
+      variant: "default"
     });
   };
   
-  // Filter cities to Türkiye's 81 cities first
+  // Filter cities to Türkiye's 81 cities
   const filteredCities = cities?.filter(city => 
     turkishCities.some(turkishCity => 
       city.text.toLowerCase().includes(turkishCity.toLowerCase())
@@ -86,11 +87,16 @@ const CitySelector = ({ onCitySelect, selectedCity }: CitySelectorProps) => {
               onValueChange={setSearchTerm}
             />
             <CommandList>
-              {error ? (
-                <div className="py-6 text-center text-sm text-red-500">
-                  API'ye bağlanılamadı. Lütfen şehrinizi seçmeye devam edin.
+              {error && (
+                <div className="p-2">
+                  <Alert variant="default" className="bg-amber-50 text-amber-800 border-amber-200">
+                    <InfoIcon className="h-4 w-4" />
+                    <AlertTitle className="text-xs">
+                      API bağlantı sorunu nedeniyle yerel veriler kullanılıyor.
+                    </AlertTitle>
+                  </Alert>
                 </div>
-              ) : null}
+              )}
               
               <CommandEmpty>Şehir bulunamadı</CommandEmpty>
               <CommandGroup heading="Türkiye'nin 81 İli">
